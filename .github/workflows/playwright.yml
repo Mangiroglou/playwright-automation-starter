@@ -3,17 +3,14 @@ name: Playwright Tests
 on:
   push:
     branches: [master]
-
   pull_request:
     branches: [master]
-
   workflow_dispatch:
 
 jobs:
   playwright-tests:
     name: Run Playwright Tests
     runs-on: ubuntu-latest
-
     timeout-minutes: 30
 
     steps:
@@ -35,7 +32,39 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test
 
-      - name: Upload Playwright HTML Report
+      - name: Publish Playwright test summary
+        if: always()
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'test-results/results.json';
+          const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+
+          if (!fs.existsSync(file)) {
+            fs.appendFileSync(summaryFile, '## Playwright Test Results\n\nNo JSON results were generated.\n');
+            process.exit(0);
+          }
+
+          const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const stats = report.stats ?? {};
+          const rows = [
+            '## Playwright Test Results',
+            '',
+            '| Result | Count |',
+            '| --- | ---: |',
+            `| Passed | ${stats.expected ?? 0} |`,
+            `| Failed | ${stats.unexpected ?? 0} |`,
+            `| Flaky | ${stats.flaky ?? 0} |`,
+            `| Skipped | ${stats.skipped ?? 0} |`,
+            '',
+            `**Duration:** ${((stats.duration ?? 0) / 1000).toFixed(1)} seconds`,
+          ];
+
+          fs.appendFileSync(summaryFile, rows.join('\n') + '\n');
+          NODE
+
+      - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -44,7 +73,7 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      - name: Upload Test Results
+      - name: Upload Playwright test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
