@@ -1,0 +1,12 @@
+export type ContactField =
+  | 'firstName'
+  | 'lastName'
+  | 'birthdate'
+  | 'email'
+  | 'phone'
+  | 'street1'
+  | 'street2'
+  | 'city'
+  | 'stateProvince'
+  | 'postalCode'
+  | 'country';
